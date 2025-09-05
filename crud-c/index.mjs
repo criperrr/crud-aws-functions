@@ -24,6 +24,7 @@ async function createQuery(destino, body) {
 
         const agendamentoData = body.agendamento ? {
             slot: body.agendamento.slot,
+            remedio_id: body.agendamento.remedio_id,
             dosagem: body.agendamento.dosagem,
             data_inicio: new Date(body.agendamento.data_inicio),
             duracao_dias: body.agendamento.duracao_dias
@@ -36,9 +37,17 @@ async function createQuery(destino, body) {
                 select: { id: true }
             })
         } else if (destino === "agendamentos") {
+            const isIdValid = await prisma.remedio.findUnique({
+                where: { id: agendamentoData.remedio_id },
+                select: { id: true }
+            });
+
+            if(!isIdValid){
+                throw new Error("Id de remédio inexistente.")
+            }
+
             resultDestino = await prisma.agendamento.create({
                 data: {
-                    remedio_id: body.remedio_id,
                     ...agendamentoData
                 },
             });

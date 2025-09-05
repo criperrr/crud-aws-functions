@@ -1,344 +1,556 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="pt-BR">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de API - Depuração</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRUD Debug – Medicamentos & Agendamentos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root {
-      --primary-color: #007bff;
-      --secondary-color: #6c757d;
-      --success-color: #28a745;
-      --danger-color: #dc3545;
-      --warning-color: #ffc107;
-      --light-color: #f8f9fa;
-      --dark-color: #343a40;
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* Scrollbar discreta no painel de logs */
+    .thin-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
     }
 
-    body {
-      font-family: var(--font-family);
-      background-color: #e9ecef;
-      color: var(--dark-color);
-      margin: 0;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
+    .thin-scroll::-webkit-scrollbar-thumb {
+      background: rgb(203 213 225);
       border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     }
 
-    h1,
-    h2 {
-      color: var(--dark-color);
-      border-bottom: 2px solid var(--primary-color);
-      padding-bottom: 10px;
+    .thin-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(203 213 225) transparent;
     }
 
-    .settings,
-    .controls {
-      background-color: var(--light-color);
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .settings label,
-    .controls label {
-      font-weight: bold;
-    }
-
-    .settings input,
-    .settings select {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    th,
-    td {
-      border: 1px solid #dee2e6;
-      padding: 12px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    tr:nth-child(even) {
-      background-color: var(--light-color);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
+    details>summary {
       cursor: pointer;
-      color: white;
-      font-weight: bold;
-      transition: opacity 0.2s;
-    }
-
-    button:hover {
-      opacity: 0.85;
-    }
-
-    .btn-create {
-      background-color: var(--success-color);
-    }
-
-    .btn-refresh {
-      background-color: var(--primary-color);
-    }
-
-    .btn-edit {
-      background-color: var(--warning-color);
-      color: var(--dark-color);
-    }
-
-    .btn-delete {
-      background-color: var(--danger-color);
-    }
-
-    #log-area {
-      margin-top: 20px;
-      background: #222;
-      color: #eee;
-      padding: 15px;
-      border-radius: 5px;
-      height: 250px;
-      overflow-y: scroll;
-      font-family: monospace;
-      white-space: pre-wrap;
-      font-size: 14px;
-    }
-
-    .log-info {
-      color: #87ceeb;
-    }
-
-    .log-success {
-      color: #28a745;
-    }
-
-    .log-error {
-      color: #dc3545;
-    }
-
-    .log-raw {
-      color: #f0e68c;
-      white-space: pre;
-    }
-
-    /* Estilos do Modal (sem alteração) */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.5);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-content {
-      background-color: #fefefe;
-      margin: auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 600px;
-      border-radius: 8px;
     }
   </style>
 </head>
 
-<body>
-  <div class="container">
-    <h1>Gerenciador de API</h1>
-    <div class="settings">
-      <div>
-        <label for="api-url">URL Base da API:</label>
-        <input type="text" id="api-url" value="https://fcm88yvj23.execute-api.us-east-1.amazonaws.com/default"
-          size="60">
-      </div>
-      <div>
-        <label for="cors-mode">Modo de Requisição:</label>
-        <select id="cors-mode">
-          <option value="cors" selected>CORS</option>
-          <option value="no-cors">No-CORS</option>
-        </select>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-10 backdrop-blur bg-white/70 border-b">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl sm:text-2xl font-bold tracking-tight">CRUD Debugger <span class="text-slate-500">•</span> <span
+          class="text-indigo-600">Medicamentos & Agendamentos</span></h1>
+      <div class="flex items-center gap-2">
+        <button id="btnSaveConfig"
+          class="px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.99] shadow">Salvar
+          Config</button>
+        <button id="btnClearLogs"
+          class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-[0.99]">Limpar Logs</button>
       </div>
     </div>
+  </header>
 
-    <section id="medicamentos-section">
-      <h2>Medicamentos</h2>
-      <div class="controls">
-        <button class="btn-refresh" onclick="fetchAllData()">Atualizar Tudo</button>
+  <main class="max-w-7xl mx-auto p-4 grid lg:grid-cols-3 gap-4">
+    <!-- Coluna: Config & Ações rápidas -->
+    <section class="lg:col-span-1 space-y-4">
+      <div class="bg-white rounded-2xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3">Configuração</h2>
+        <label class="block text-sm font-medium mb-1" for="baseUrl">Base URL</label>
+        <input id="baseUrl" type="text"
+          class="w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500"
+          value="https://q0ycx23bxg.execute-api.us-east-1.amazonaws.com/main" />
+
+        <div class="mt-3 grid grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 text-sm">
+            <input id="useMock" type="checkbox" class="rounded" />
+            Usar MOCK
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="useCorsProxy" type="checkbox" class="rounded" />
+            Usar CORS Proxy
+          </label>
+        </div>
+        <label class="block text-sm font-medium mt-2" for="corsProxy">CORS Proxy (opcional)</label>
+        <input id="corsProxy" type="text"
+          class="w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="ex.: https://cors.isomorphic-git.org/" />
+
+        <div class="mt-3 grid sm:grid-cols-2 gap-2">
+          <button id="btnPing" class="px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800">Ping API</button>
+          <button id="btnPrefill" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Preencher
+            Exemplo</button>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Princípio Ativo</th>
-            <th>Estoque</th>
-            <th>Observações</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="medicamentos-table-body"></tbody>
-      </table>
-    </section>
-    <hr style="margin: 40px 0;">
-    <section id="agendamentos-section">
-      <h2>Agendamentos</h2>
-      <div class="controls">
-        <button class="btn-refresh" onclick="fetchAllData()">Atualizar Tudo</button>
+
+      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
+        <h2 class="text-lg font-semibold">Ações Rápidas</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <button data-load="medicamentos"
+            class="btnLoad px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">Carregar
+            Medicamentos</button>
+          <button data-load="agendamentos"
+            class="btnLoad px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">Carregar
+            Agendamentos</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button data-clear="medicamentos"
+            class="btnClearTable px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Limpar Tabela (Med)</button>
+          <button data-clear="agendamentos"
+            class="btnClearTable px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Limpar Tabela (Ag)</button>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Remédio ID</th>
-            <th>Slot</th>
-            <th>Dosagem</th>
-            <th>Início</th>
-            <th>Duração (dias)</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="agendamentos-table-body"></tbody>
-      </table>
     </section>
-    <h2>Logs da API</h2>
-    <div id="log-area">Aguardando requisições...</div>
-  </div>
-  <!-- Modals -->
+
+    <!-- Coluna: Tabelas -->
+    <section class="lg:col-span-2 space-y-4">
+      <div class="bg-white rounded-2xl shadow p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Tabelas</h2>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button id="tabMed"
+              class="tabBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-white shadow">Medicamentos</button>
+            <button id="tabAg" class="tabBtn px-3 py-1.5 rounded-lg text-sm font-medium">Agendamentos</button>
+          </div>
+        </div>
+
+        <div id="tableMed" class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 text-slate-700">
+              <tr>
+                <th class="text-left p-2">id</th>
+                <th class="text-left p-2">nome</th>
+                <th class="text-left p-2">principio_ativo</th>
+                <th class="text-left p-2">concentracao</th>
+                <th class="text-left p-2">forma_farmaceutica</th>
+                <th class="text-left p-2">estoque_inicial</th>
+                <th class="text-left p-2">observacoes</th>
+                <th class="text-left p-2">descricao</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyMed" class="divide-y"></tbody>
+          </table>
+          <p id="emptyMed" class="hidden text-sm text-slate-500 p-2">Sem dados. Clique em "Carregar Medicamentos".</p>
+        </div>
+
+        <div id="tableAg" class="hidden overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 text-slate-700">
+              <tr>
+                <th class="text-left p-2">remedio_id</th>
+                <th class="text-left p-2">slot</th>
+                <th class="text-left p-2">dosagem</th>
+                <th class="text-left p-2">data_inicio</th>
+                <th class="text-left p-2">duracao_dias</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyAg" class="divide-y"></tbody>
+          </table>
+          <p id="emptyAg" class="hidden text-sm text-slate-500 p-2">Sem dados. Clique em "Carregar Agendamentos".</p>
+        </div>
+      </div>
+
+      <!-- Formulários -->
+      <div class="bg-white rounded-2xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-3">Criar / Atualizar / Deletar</h2>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Form Medicamento -->
+          <form id="formMed" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">Medicamento</h3>
+              <span class="text-xs text-slate-500">POST / GET / PUT / DELETE</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input name="id" type="number" placeholder="id (para PUT/DELETE)"
+                class="col-span-2 rounded-xl border-slate-300" />
+              <input name="nome" placeholder="nome" class="rounded-xl border-slate-300" />
+              <input name="principio_ativo" placeholder="principio_ativo" class="rounded-xl border-slate-300" />
+              <input name="concentracao" placeholder="concentracao" class="rounded-xl border-slate-300" />
+              <input name="forma_farmaceutica" placeholder="forma_farmaceutica" class="rounded-xl border-slate-300" />
+              <input name="estoque_inicial" type="number" placeholder="estoque_inicial"
+                class="rounded-xl border-slate-300" />
+              <input name="observacoes" placeholder="observacoes" class="col-span-2 rounded-xl border-slate-300" />
+              <textarea name="descricao" placeholder="descricao"
+                class="col-span-2 rounded-xl border-slate-300"></textarea>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              <button data-action="create"
+                class="actMed col-span-2 px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Criar</button>
+              <button data-action="update"
+                class="actMed px-3 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700">Atualizar</button>
+              <button data-action="delete"
+                class="actMed px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700">Deletar</button>
+            </div>
+          </form>
+
+          <!-- Form Agendamento -->
+          <form id="formAg" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">Agendamento</h3>
+              <span class="text-xs text-slate-500">POST / GET / PUT / DELETE</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input name="remedio_id" type="number" placeholder="remedio_id (id do remédio)"
+                class="col-span-2 rounded-xl border-slate-300" />
+              <label>Slot:
+                <select name="slot">
+                  <option value="manha">Manhã</option>
+                  <option value="tarde">Tarde</option>
+                  <option value="noite">Noite</option>
+                </select>
+              </label>
+
+              <input name="dosagem" placeholder="dosagem (ex.: 1cp)" class="rounded-xl border-slate-300" />
+              <input name="data_inicio" type="datetime-local" placeholder="data_inicio"
+                class="rounded-xl border-slate-300" />
+              <input name="duracao_dias" type="number" placeholder="duracao_dias" class="rounded-xl border-slate-300" />
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              <button data-action="create"
+                class="actAg col-span-2 px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Criar</button>
+              <button data-action="update"
+                class="actAg px-3 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700">Atualizar</button>
+              <button data-action="delete"
+                class="actAg px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700">Deletar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Logs -->
+      <div class="bg-white rounded-2xl shadow p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-lg font-semibold">Logs</h2>
+          <span id="latencyBadge" class="text-xs bg-slate-100 px-2 py-1 rounded-full">—</span>
+        </div>
+        <div id="logs" class="thin-scroll h-72 overflow-auto space-y-2 text-sm"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 pb-6 text-xs text-slate-500">
+    Dica: ative <strong>MOCK</strong> se estiver testando sem backend ou com CORS bloqueando; ative <strong>CORS
+      Proxy</strong> e informe um proxy se necessário.
+  </footer>
+
+  <template id="logItemTpl">
+    <div class="border rounded-xl p-3">
+      <div class="flex items-center justify-between">
+        <div class="font-mono text-xs"><span data-k="time"></span> <span class="text-slate-400">•</span> <span
+            data-k="method" class="font-semibold"></span> <span data-k="url" class="text-slate-500"></span></div>
+        <span data-k="status" class="text-xs px-2 py-0.5 rounded-full bg-slate-100">—</span>
+      </div>
+      <details class="mt-2">
+        <summary class="text-slate-700 text-sm">Detalhes</summary>
+        <div class="grid md:grid-cols-2 gap-2 mt-2">
+          <pre data-k="req" class="bg-slate-50 rounded-xl p-2 overflow-auto"></pre>
+          <pre data-k="res" class="bg-slate-50 rounded-xl p-2 overflow-auto"></pre>
+        </div>
+      </details>
+    </div>
+  </template>
 
   <script>
-    const logArea = document.getElementById('log-area');
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-    function log(message, type = 'info') {
-      const timestamp = new Date().toLocaleTimeString();
-      const logEntry = document.createElement('div');
-      logEntry.className = `log-${type}`;
-      logEntry.textContent = `[${timestamp}] ${message}`;
-      logArea.appendChild(logEntry);
-      logArea.scrollTop = logArea.scrollHeight;
+    const state = {
+      baseUrl: '',
+      useMock: false,
+      useCorsProxy: false,
+      corsProxy: ''
+    };
+
+    function loadConfig() {
+      const saved = JSON.parse(localStorage.getItem('crud-debug-config') || '{}');
+      state.baseUrl = saved.baseUrl || 'https://q0ycx23bxg.execute-api.us-east-1.amazonaws.com/main';
+      state.useMock = !!saved.useMock;
+      state.useCorsProxy = !!saved.useCorsProxy;
+      state.corsProxy = saved.corsProxy || '';
+      $('#baseUrl').value = state.baseUrl;
+      $('#useMock').checked = state.useMock;
+      $('#useCorsProxy').checked = state.useCorsProxy;
+      $('#corsProxy').value = state.corsProxy;
     }
 
-    // *** FUNÇÃO APIREQUEST ATUALIZADA COM SELETOR DE MODO ***
-    async function apiRequest(path, method = 'GET', body = null) {
-      const baseUrl = document.getElementById('api-url').value;
-      const corsMode = document.getElementById('cors-mode').value;
-      const url = `${baseUrl}${path}`;
+    function saveConfig() {
+      state.baseUrl = $('#baseUrl').value.trim();
+      state.useMock = $('#useMock').checked;
+      state.useCorsProxy = $('#useCorsProxy').checked;
+      state.corsProxy = $('#corsProxy').value.trim();
+      localStorage.setItem('crud-debug-config', JSON.stringify(state));
+      toast('Config salva.');
+    }
 
-      const options = { method, mode: corsMode, headers: { 'Content-Type': 'application/json' } };
-      if (body) options.body = JSON.stringify(body);
+    function toast(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      div.className = 'fixed bottom-4 right-4 bg-slate-900 text-white px-3 py-2 rounded-xl shadow z-50 opacity-0 translate-y-2 transition-all';
+      document.body.appendChild(div);
+      requestAnimationFrame(() => {
+        div.classList.remove('opacity-0', 'translate-y-2');
+      });
+      setTimeout(() => {
+        div.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => div.remove(), 200);
+      }, 1600);
+    }
 
-      log(`Request: ${method} ${url} (Mode: ${corsMode})`);
+    function fmtTime(d = new Date()) {
+      return d.toLocaleTimeString('pt-BR', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    }
 
-      if (corsMode === 'no-cors') {
-        log('Atenção: No modo "No-CORS", o corpo da resposta NÃO PODE ser lido pelo JavaScript. Verifique a aba "Network" do navegador (F12) para ver a resposta real.', 'info');
+    function addLog({ method, url, status, req, res, startedAt, endedAt }) {
+      const tpl = $('#logItemTpl').content.cloneNode(true);
+      tpl.querySelector('[data-k="time"]').textContent = `${fmtTime(startedAt)} → ${fmtTime(endedAt)}`;
+      tpl.querySelector('[data-k="method"]').textContent = method;
+      tpl.querySelector('[data-k="url"]').textContent = url;
+      const st = tpl.querySelector('[data-k="status"]');
+      st.textContent = status;
+      st.className = 'text-xs px-2 py-0.5 rounded-full ' + (String(status).startsWith('2') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800');
+      tpl.querySelector('[data-k="req"]').textContent = JSON.stringify(req, null, 2);
+      tpl.querySelector('[data-k="res"]').textContent = typeof res === 'string' ? res : JSON.stringify(res, null, 2);
+      $('#logs').prepend(tpl);
+      const latency = endedAt - startedAt;
+      $('#latencyBadge').textContent = `latência: ${latency} ms`;
+    }
+
+    function buildUrl(path) {
+      let url = `${state.baseUrl}${path}`;
+      if (state.useCorsProxy && state.corsProxy) {
+        url = state.corsProxy.replace(/\/$/, '') + '/' + url;
       }
+      return url;
+    }
+
+    async function apiFetch(method, path, body) {
+      const startedAt = new Date();
+      const url = buildUrl(path);
+
+      if (state.useMock) {
+        await new Promise(r => setTimeout(r, 180));
+        const mockRes = mockResponse(method, path, body);
+        addLog({ method, url, status: mockRes.status, req: { method, body }, res: mockRes.body, startedAt, endedAt: new Date() });
+        if (String(mockRes.status).startsWith('2')) return mockRes.body;
+        throw new Error(typeof mockRes.body === 'string' ? mockRes.body : mockRes.body.error || 'Erro MOCK');
+      }
+
+      const init = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body && (method === 'POST' || method === 'PUT')) init.body = JSON.stringify(body);
 
       try {
-        const response = await fetch(url, options);
-        const responseText = await response.text();
-
-        log(`Raw API Response Body:\n--------------------------------\n${responseText || '(Vazio - como esperado no modo No-CORS ou em respostas sem conteúdo)'}\n--------------------------------`, 'raw');
-
-        if (!response.ok) {
-          let errorMsg = `HTTP error! Status: ${response.status}`;
-          if (response.status === 0 || corsMode === 'no-cors') { // No modo no-cors o status é sempre 0
-            errorMsg = `A requisição foi enviada. Verifique a aba "Network" para o status real. No modo "no-cors", a resposta é opaca.`;
-          }
-          throw new Error(errorMsg);
-        }
-
-        if (!responseText) {
-          log(`Success: ${method} ${url} (No Content)`, 'success');
-          return {};
-        }
-
-        const data = JSON.parse(responseText);
-        log(`Success: ${method} ${url}`, 'success');
+        const resp = await fetch(url, init);
+        const text = await resp.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = text; }
+        addLog({ method, url, status: resp.status, req: { method, body }, res: data, startedAt, endedAt: new Date() });
+        if (!resp.ok) throw new Error((data && (data.error || data.message)) || `HTTP ${resp.status}`);
         return data;
-
-      } catch (error) {
-        log(`Error: ${error.message}. Verifique o corpo bruto da resposta acima.`, 'error');
-        throw error;
+      } catch (e) {
+        addLog({ method, url, status: 'ERR', req: { method, body }, res: String(e), startedAt, endedAt: new Date() });
+        throw e;
       }
     }
 
-    function renderTable(destino, records) {
-      const tableBody = document.getElementById(`${destino}-table-body`);
-      tableBody.innerHTML = '';
-      if (!records || records.length === 0) {
-        const colCount = 6;
-        tableBody.innerHTML = `<tr><td colspan="${colCount}">Nenhum registro encontrado.</td></tr>`;
-        return;
+    function mockResponse(method, path, body) {
+      const now = new Date();
+      if (path.startsWith('/medicamentos')) {
+        if (method === 'GET') return { status: 200, body: { resource: 'medicamentos', data: [{ id: 1, nome: 'Dipirona', principio_ativo: 'Metamizol', concentracao: '500mg', forma_farmaceutica: 'Comprimido', estoque_inicial: 20, observacoes: 'Tomar com água', descricao: 'Analgésico e antitérmico' }] } };
+        if (method === 'POST') return { status: 200, body: { medicamentos: { id: Math.floor(Math.random() * 1000) + 2 } } };
+        if (method === 'PUT') return { status: 200, body: { medicamentos: { ...(body || {}), id: Number((/\/(\d+)/.exec(path) || [])[1] || 0) } } };
+        if (method === 'DELETE') return { status: 200, body: { medicamentos: { id: Number((/\/(\d+)/.exec(path) || [])[1] || 0) } } };
       }
-      records.forEach(item => {
-        const row = document.createElement('tr');
-        if (destino === 'medicamentos') {
-          row.innerHTML = `<td>${item.id}</td><td>${item.nome}</td><td>${item.principio_ativo || ''}</td><td>${item.estoque_inicial || ''}</td><td>${item.observacoes || ''}</td><td>...</td>`;
-        } else if (destino === 'agendamentos') {
-          row.innerHTML = `<td>${item.remedio_id}</td><td>${item.slot}</td><td>${item.dosagem}</td><td>${new Date(item.data_inicio).toLocaleString()}</td><td>${item.duracao_dias}</td><td>...</td>`;
-        }
-        tableBody.appendChild(row);
+      if (path.startsWith('/agendamentos')) {
+        if (method === 'GET') return { status: 200, body: { resource: 'agendamentos', data: [{ remedio_id: 1, slot: 'manha', dosagem: '1cp', data_inicio: now.toISOString(), duracao_dias: 7 }] } };
+        if (method === 'POST') return { status: 200, body: { agendamentos: { remedio_id: body?.remedio_id || 1 } } };
+        if (method === 'PUT') return { status: 200, body: { agendamentos: { ...(body || {}), remedio_id: Number((/\/(\d+)/.exec(path) || [])[1] || 0) } } };
+        if (method === 'DELETE') return { status: 200, body: { agendamentos: { remedio_id: Number((/\/(\d+)/.exec(path) || [])[1] || 0) } } };
+      }
+      return { status: 400, body: { error: 'Rota MOCK não reconhecida' } };
+    }
+
+    function fillTable(tbody, emptyEl, rows) {
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) { emptyEl.classList.remove('hidden'); return; }
+      emptyEl.classList.add('hidden');
+      const keys = new Set();
+      rows.forEach(r => Object.keys(r || {}).forEach(k => keys.add(k)));
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        [...keys].forEach(k => {
+          const td = document.createElement('td');
+          td.className = 'p-2 align-top';
+          const v = row?.[k];
+          td.textContent = (v === null || v === undefined) ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
       });
     }
 
-    async function fetchAllData() {
+    // Tabs
+    function setTab(which) {
+      const med = which === 'med';
+      $('#tabMed').className = 'tabBtn px-3 py-1.5 rounded-lg text-sm font-medium ' + (med ? 'bg-white shadow' : '');
+      $('#tabAg').className = 'tabBtn px-3 py-1.5 rounded-lg text-sm font-medium ' + (!med ? 'bg-white shadow' : '');
+      $('#tableMed').classList.toggle('hidden', !med);
+      $('#tableAg').classList.toggle('hidden', med);
+    }
+
+    // Prefill exemplo
+    function prefill() {
+      // Medicamento
+      const fm = $('#formMed');
+      fm.nome.value = 'Paracetamol';
+      fm.principio_ativo.value = 'Acetaminofeno';
+      fm.concentracao.value = '750mg';
+      fm.forma_farmaceutica.value = 'Comprimido';
+      fm.estoque_inicial.value = 30;
+      fm.observacoes.value = 'Evitar álcool';
+      fm.descricao.value = 'Analgésico e antitérmico.';
+      // Agendamento
+      const fa = $('#formAg');
+      fa.remedio_id.value = 1;
+      fa.slot.value = 'manha';
+      fa.dosagem.value = '1cp';
+      fa.data_inicio.value = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16);
+      fa.duracao_dias.value = 5;
+      toast('Campos preenchidos com exemplo.');
+    }
+
+    // Ações Medicamento
+    async function handleMedAction(e) {
+      e.preventDefault();
+      const action = e.currentTarget.dataset.action;
+      const f = $('#formMed');
+      const id = Number(f.id.value) || null;
+      const body = cleanObject({
+        nome: valStr(f.nome.value),
+        principio_ativo: valStr(f.principio_ativo.value),
+        concentracao: valStr(f.concentracao.value),
+        forma_farmaceutica: valStr(f.forma_farmaceutica.value),
+        estoque_inicial: valNum(f.estoque_inicial.value),
+        observacoes: valStr(f.observacoes.value),
+        descricao: valStr(f.descricao.value)
+      });
+
       try {
-        const data = await apiRequest('/');
-        if (data && data.root) {
-          renderTable('medicamentos', data.root.remedio);
-          renderTable('agendamentos', data.root.agendamentos);
-        } else if (document.getElementById('cors-mode').value === 'cors') {
-          // Só mostra erro de estrutura se não estiver em modo no-cors
-          log('Estrutura de dados JSON recebida é inválida ou não contém a chave "root".', 'error');
-          renderTable('medicamentos', []);
-          renderTable('agendamentos', []);
+        if (action === 'create') {
+          const res = await apiFetch('POST', '/medicamentos', body);
+          toast('Medicamento criado');
+          await loadMedicamentos();
+        } else if (action === 'update') {
+          if (!id) return alert('Informe o id para atualizar.');
+          const res = await apiFetch('PUT', `/medicamentos/${id}`, body);
+          toast('Medicamento atualizado');
+          await loadMedicamentos();
+        } else if (action === 'delete') {
+          if (!id) return alert('Informe o id para deletar.');
+          const res = await apiFetch('DELETE', `/medicamentos/${id}`);
+          toast('Medicamento deletado');
+          await loadMedicamentos();
         }
-      } catch (error) {
-        log('Falha ao buscar dados. As tabelas não puderam ser preenchidas.', 'info');
-        renderTable('medicamentos', []);
-        renderTable('agendamentos', []);
+      } catch (err) {
+        alert('Erro: ' + err.message);
       }
     }
 
-    window.onload = fetchAllData;
+    // Ações Agendamento
+    async function handleAgAction(e) {
+      e.preventDefault();
+      const action = e.currentTarget.dataset.action;
+      const f = $('#formAg');
+      const id = Number(f.remedio_id.value) || null; // id do agendamento = remedio_id
+      const body = cleanObject({
+        remedio_id: id,
+        slot: valStr(f.slot.value),
+        dosagem: valStr(f.dosagem.value),
+        data_inicio: f.data_inicio.value ? new Date(f.data_inicio.value).toISOString() : undefined,
+        duracao_dias: valNum(f.duracao_dias.value)
+      });
 
+      try {
+        if (action === 'create') {
+          const res = await apiFetch('POST', '/agendamentos', {"agendamento": body});
+          toast('Agendamento criado');
+          await loadAgendamentos();
+        } else if (action === 'update') {
+          if (!id) return alert('Informe remedio_id para atualizar.');
+          const patch = { ...body }; delete patch.remedio_id; // API espera id no path
+          const res = await apiFetch('PUT', `/agendamentos/${id}`, patch);
+          toast('Agendamento atualizado');
+          await loadAgendamentos();
+        } else if (action === 'delete') {
+          if (!id) return alert('Informe remedio_id para deletar.');
+          const res = await apiFetch('DELETE', `/agendamentos/${id}`);
+          toast('Agendamento deletado');
+          await loadAgendamentos();
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    // Helpers
+    function valStr(v) { v = (v ?? '').trim(); return v || undefined; }
+    function valNum(v) { v = String(v ?? '').trim(); return v ? Number(v) : undefined; }
+    function cleanObject(o) {
+      const out = {}; Object.entries(o).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') out[k] = v; }); return out;
+    }
+
+    // Loaders
+    async function loadMedicamentos() {
+      try {
+        const res = await apiFetch('GET', '/medicamentos');
+        const rows = res?.data || res?.medicamentos || [];
+        fillTable($('#tbodyMed'), $('#emptyMed'), rows);
+        setTab('med');
+      } catch (e) { alert('Falha ao carregar medicamentos: ' + e.message); }
+    }
+    async function loadAgendamentos() {
+      try {
+        const res = await apiFetch('GET', '/agendamentos');
+        const rows = res?.data || res?.agendamentos || [];
+        fillTable($('#tbodyAg'), $('#emptyAg'), rows);
+        setTab('ag');
+      } catch (e) { alert('Falha ao carregar agendamentos: ' + e.message); }
+    }
+
+    // Ping simples (GET med e ag e mede tempo total)
+    async function pingApi() {
+      const t0 = performance.now();
+      try {
+        await Promise.all([
+          apiFetch('GET', '/medicamentos'),
+          apiFetch('GET', '/agendamentos')
+        ]);
+        const t1 = performance.now();
+        toast(`Ping OK (${Math.round(t1 - t0)} ms)`);
+      } catch (e) {
+        toast('Ping falhou: ' + e.message);
+      }
+    }
+
+    // Eventos
+    window.addEventListener('DOMContentLoaded', () => {
+      loadConfig();
+
+      $('#btnSaveConfig').addEventListener('click', saveConfig);
+      $('#btnClearLogs').addEventListener('click', () => $('#logs').innerHTML = '');
+      $('#btnPrefill').addEventListener('click', prefill);
+      $('#btnPing').addEventListener('click', pingApi);
+
+      $('#tabMed').addEventListener('click', () => setTab('med'));
+      $('#tabAg').addEventListener('click', () => setTab('ag'));
+
+      $$('.btnLoad').forEach(b => b.addEventListener('click', (e) => {
+        const what = e.currentTarget.dataset.load;
+        if (what === 'medicamentos') loadMedicamentos(); else loadAgendamentos();
+      }));
+      $$('.btnClearTable').forEach(b => b.addEventListener('click', (e) => {
+        const what = e.currentTarget.dataset.clear;
+        if (what === 'medicamentos') { $('#tbodyMed').innerHTML = ''; $('#emptyMed').classList.remove('hidden'); }
+        else { $('#tbodyAg').innerHTML = ''; $('#emptyAg').classList.remove('hidden'); }
+      }));
+
+      $$('.actMed').forEach(b => b.addEventListener('click', handleMedAction));
+      $$('.actAg').forEach(b => b.addEventListener('click', handleAgAction));
+    });
   </script>
 </body>
 

@@ -13,9 +13,17 @@ prisma = global.prisma;
 async function selectQuery(destino) {
     let resultDestino;
     if (destino == "medicamentos") {
-        resultDestino = await prisma.remedio.findMany();
+        resultDestino = await prisma.remedio.findMany({
+            orderBy: {
+                id: 'asc'
+            }
+        });
     } else if (destino == "agendamentos") {
-        resultDestino = await prisma.agendamento.findMany();
+        resultDestino = await prisma.agendamento.findMany({
+            orderBy: {
+                remedio_id: 'asc'
+            }
+        });
     } else {
         throw new Error('Invalid route.');
     }
