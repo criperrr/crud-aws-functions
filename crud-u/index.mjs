@@ -29,24 +29,6 @@ async function updateQuery(destino, id, body) {
 
 export const handler = async (event) => {
     const body = event.body ? JSON.parse(event.body) : {};
-    let id = event.pathParameters?.id;
-
-    if (!id || Object.keys(body).length === 0) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid body or null Id.' }),
-            headers: { "Content-Type": "application/json" },
-        };
-    }
-
-    id = parseInt(id, 10);
-    if (isNaN(id)) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid ID type.' }),
-            headers: { "Content-Type": "application/json" },
-        };
-    }
 
     for (const [key, value] of Object.entries(body)) {
         if (value === null || value === undefined) {
@@ -58,14 +40,37 @@ export const handler = async (event) => {
         '/medicamentos': 'medicamentos',
         '/agendamentos': 'agendamentos',
     };
-    const rutaBase = event.path.split('/')[1];
-    const destino = possibleRoutes[`/${rutaBase}`];
+
+    const rutaBase = event.rawPath || '';
+
+    const stage = event.requestContext?.stage || '';
+    const resource = rutaBase.split(`/${stage}/`)[1]?.split("/")[0];
+    const destino = possibleRoutes[`/${resource}`] || null;
+
+    const idParam = event.pathParameters?.id;
+    const isIdNumber = idParam !== undefined && !isNaN(Number(idParam));
+    const id = isIdNumber ? Number(idParam) : null;
+
+    if (!id || Object.keys(body).length === 0) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid body or null Id.' }),
+            headers: { "Content-Type": "application/json" },
+        };
+    }
+
 
     if (!destino) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid route.' }),
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: 'Rota inválida.',
+                "route": rutaBase,
+                "stage": stage,
+                "resource": resource,
+                "destino": destino
+            }),
         };
     }
 

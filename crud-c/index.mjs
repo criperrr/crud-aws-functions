@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 /** @type {PrismaClient} */
 let prisma;
@@ -10,37 +10,56 @@ if (!global.prisma) {
 prisma = global.prisma;
 
 async function createQuery(destino, body) {
-    let resultDestino;
-    if (destino === "medicamentos") {
-        resultDestino = await prisma.remedio.create({
-            data: body,
-            select: { id: true }
-        })
-    } else if (destino === "agendamentos") {
-        resultDestino = await prisma.agendamento.create({
-            data: body,
-            select: { remedio_id: true }
-        });
-    } else if (destino === "root") {
-        const { slot, dosagem, data_inicio, duracao_dias, ...remedioData } = body;
-        const agendamentoData = { slot, dosagem, data_inicio, duracao_dias };
+    try {
+        const insertData = {
+            nome: body.nome,
+            principio_ativo: body.principio_ativo,
+            concentracao: body.concentracao,
+            forma_farmaceutica: body.forma_farmaceutica,
+            estoque_inicial: body.estoque_inicial,
+            observacoes: body.observacoes,
+            descricao: body.descricao
+        };
 
-        const resultRemedio = await prisma.remedio.create({
-            data: remedioData, 
-            select: { id: true }
-        });
-        const resultAgendamento = await prisma.agendamento.create({
-            data: {
-                remedio_id: resultRemedio.id,
-                ...agendamentoData 
-            },
-        });
 
-        resultDestino = {resultRemedio, resultAgendamento};
-    } else {
-        throw new Error('Invalid route.');
+        const agendamentoData = body.agendamento ? {
+            slot: body.agendamento.slot,
+            dosagem: body.agendamento.dosagem,
+            data_inicio: new Date(body.agendamento.data_inicio),
+            duracao_dias: body.agendamento.duracao_dias
+        } : null;
+
+        let resultDestino;
+        if (destino === "medicamentos") {
+            resultDestino = await prisma.remedio.create({
+                data: insertData,
+                select: { id: true }
+            })
+        } else if (destino === "agendamentos") {
+            resultDestino = await prisma.agendamento.create({
+                data: {
+                    remedio_id: body.remedio_id,
+                    ...agendamentoData
+                },
+            });
+        } else {
+            throw new Error('Rota inválida.');
+        }
+        return resultDestino;
+    } catch (error) {
+        console.error(error);
+        if(error instanceof Prisma.PrismaClientKnownRequestError){
+            if (error.code === 'P2002')
+                throw new Error('Remédio já possui agendamento.');
+            else if (error.code === 'P2003')
+                throw new Error('Violação de chave estrangeira.');
+            else if (error.code === 'P2004')
+                throw new Error('Violação de constraint.');
+        } else {
+            throw error;
+        }
+        
     }
-    return resultDestino;
 }
 
 export const handler = async (event) => {
@@ -49,7 +68,7 @@ export const handler = async (event) => {
     if (Object.keys(body).length === 0) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid body.' }),
+            body: JSON.stringify({ error: 'Corpo de requisição inválido.' }),
             headers: { "Content-Type": "application/json" },
         };
     }
@@ -64,17 +83,26 @@ export const handler = async (event) => {
     const possibleRoutes = {
         '/medicamentos': 'medicamentos',
         '/agendamentos': 'agendamentos',
-        '/': 'root'
     };
-    const rutaBase = event.path === '/' ? '/' : `/${event.path.split('/')[1]}`;
-    const destino = possibleRoutes[rutaBase];
+
+    const rutaBase = event.rawPath + "";
+    const stage = event.requestContext?.stage || '';
+    const resource = rutaBase.split(`/${stage}/`)[1]?.replaceAll("/", "")
+
+    const destino = possibleRoutes[`/${resource}`];
 
 
     if (!destino) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid route.' }),
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: 'Rota inválida.',
+                "route": rutaBase,
+                "stage": stage,
+                "resource": resource,
+                "destino": destino
+            }),
         };
     }
 
@@ -89,7 +117,7 @@ export const handler = async (event) => {
         console.error(error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `Internal server error: ${error.message}` }),
+            body: JSON.stringify({ error: `Erro interno de servidor: ${error.message}` }),
             headers: { "Content-Type": "application/json" },
         };
     }

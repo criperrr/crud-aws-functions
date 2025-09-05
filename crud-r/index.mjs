@@ -28,21 +28,22 @@ export const handler = async (event) => {
         '/agendamentos': 'agendamentos',
     };
 
-    // --- Início da Correção ---
-    // 1. Pega a rota completa, por exemplo: "/medicamentos" ou "/medicamentos/123"
-    // 2. Divide a string pelo caractere '/', resultando em um array: ["", "medicamentos", "123"]
-    // 3. Pega o segundo elemento do array ('medicamentos'), que é o nome do recurso.
-    const rutaBase = event.path.split('/')[1];
+    const rutaBase = event.rawPath + "";
+    const stage = event.requestContext?.stage || '';
+    const resource = rutaBase.split(`/${stage}/`)[1]?.replaceAll("/", "")
 
-    // 4. Monta a chave de busca para o objeto possibleRoutes: `/${rutaBase}` -> "/medicamentos"
-    const destino = possibleRoutes[`/${rutaBase}`];
-    // --- Fim da Correção ---
+    const destino = possibleRoutes[`/${resource}`];
 
     if (!destino) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid route.' }),
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: 'Invalid route.',
+                "route": rutaBase,
+                "stage": stage,
+                "resource": resource,
+                "destino": destino
+            }),
         };
     }
 
@@ -50,14 +51,14 @@ export const handler = async (event) => {
         const result = await selectQuery(destino);
         return {
             statusCode: 200,
-            body: JSON.stringify({ [destino]: result }),
+            body: JSON.stringify({ resource: destino, data: result }),
             headers: { "Content-Type": "application/json" },
         };
     } catch (error) {
         console.error(error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `Internal server error: ${error.message}` }),
+            body: JSON.stringify({ message: `Internal server error: ${error.message}` }),
             headers: { "Content-Type": "application/json" },
         };
     }

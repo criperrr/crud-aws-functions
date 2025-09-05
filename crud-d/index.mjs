@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 /** @type {PrismaClient} */
 let prisma;
 
-if(!global.prisma) {
+if (!global.prisma) {
     global.prisma = new PrismaClient();;
 }
 /** @type {PrismaClient} */
@@ -12,16 +12,16 @@ prisma = global.prisma;
 
 async function deleteQuery(destino, id) {
     let resultDestino;
-    if(destino === "medicamentos") {
+    if (destino === "medicamentos") {
         resultDestino = await prisma.remedio.delete({
             where: {
                 id: id
             }, // Prisma sabe lidar com entidade fracas e deleta em cascata.
         });
-    } else if(destino === "agendamentos") {
+    } else if (destino === "agendamentos") {
         resultDestino = await prisma.agendamento.delete({
             where: {
-                id: id,
+                remedio_id: id
             },
         });
     } else {
@@ -31,8 +31,20 @@ async function deleteQuery(destino, id) {
 }
 
 export const handler = async (event) => {
+    // n da pra deletar um remedio sem deletar o agendamento, mas da pra deletar um agendamento sem deletar o remedio
+    const possibleRoutes = {
+        '/medicamentos': 'medicamentos',
+        '/agendamentos': 'agendamentos',
+    };
+    const rutaBase = event.rawPath || '';
 
-    let id = event.pathParameters?.id;
+    const stage = event.requestContext?.stage || '';
+    const resource = rutaBase.split(`/${stage}/`)[1]?.split("/")[0];
+    const destino = possibleRoutes[`/${resource}`] || null;
+
+    const idParam = event.pathParameters?.id;
+    const isIdNumber = idParam !== undefined && !isNaN(Number(idParam));
+    const id = isIdNumber ? Number(idParam) : null;
 
     if (!id) {
         return {
@@ -41,30 +53,18 @@ export const handler = async (event) => {
             headers: { "Content-Type": "application/json" },
         };
     }
-
-    id = parseInt(id, 10);
-    if (isNaN(id)) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid ID type.' }),
-            headers: { "Content-Type": "application/json" },
-        };
-    }
-
-
-    // n da pra deletar um remedio sem deletar o agendamento, mas da pra deletar um agendamento sem deletar o remedio
-    const possibleRoutes = {
-        "/medicamentos": "medicamentos",
-        "/agendamentos": "agendamentos",
-    }
-    const rutaBase = event.path.split('/')[1];
-    const destino = possibleRoutes[`/${rutaBase}`];
-// ent se for /medicamentos, ele vai deletar o remedio e o agendamento. se for /agendamentos, ele vai deletar só o agendamento. porque agendamento é uma entidade fraca
+    // ent se for /medicamentos, ele vai deletar o remedio e o agendamento. se for /agendamentos, ele vai deletar só o agendamento. porque agendamento é uma entidade fraca
     if (!destino) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: 'Invalid route.' }),
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: 'Rota inválida.',
+                "route": rutaBase,
+                "stage": stage,
+                "resource": resource,
+                "destino": destino
+            }),
         };
     }
 
